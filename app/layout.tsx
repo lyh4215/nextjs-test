@@ -4,6 +4,8 @@ import "./globals.css";
 import { NavBar} from "../components/layout/NavBar";
 
 import ReduxProvider from "@/components/providers/ReduxProvider";
+import {ThemeProvider} from "@/app/providers/theme-context";
+import {AuthProvider} from "@/app/providers/auth-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,8 +33,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReduxProvider>
-        <NavBar/>
-        {children}
+          <ThemeProvider>
+            <AuthProvider>
+              <NavBar/>
+              {children}
+            </AuthProvider>
+          </ThemeProvider>
+
         </ReduxProvider>
       </body>
     </html>
