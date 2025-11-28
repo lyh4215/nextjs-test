@@ -1,3 +1,9 @@
+- 3개의 Div로 나눔
+- 자신이 height, width가 몇인지 탐색을 통해 알게 해주는 함수 만들기
+- main div는 grid로 그냥 block list정렬해서 사용
+- 정렬알고리즘 공부(ts에서)
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
