@@ -13,6 +13,7 @@ function LinkSet({className} : LinkSetProps) {
       <Link href="/blog" className="text-gray-700 hover:text-black">Blog</Link>
       <Link href="/contact" className="text-gray-700 hover:text-black">Contact</Link>
       <Link href="/posts" className="text-gray-700 hover:text-black">Posts</Link>
+      <Link href="/dnd" className="text-gray-700 hover:text-black">dnd</Link>
       <Link href="/auth/login" className="text-gray-700 hover:text-black">Login</Link>
     </div>
   );
