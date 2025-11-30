@@ -9,8 +9,8 @@ function LinkSet({className} : LinkSetProps) {
   return (
     <div className = {className}>
       <Link href="/" className="text-gray-700 hover:text-black">Home</Link>
-      <Link href="/about" className="text-gray-700 hover:text-black">About</Link>
-      <Link href="/blog" className="text-gray-700 hover:text-black">Blog</Link>
+      <Link href="/about" className="text-gray-700 hover:text-black">MyMatrix</Link>
+      <Link href="/blog" className="text-gray-700 hover:text-black">GPTMatrix</Link>
       <Link href="/contact" className="text-gray-700 hover:text-black">Contact</Link>
       <Link href="/posts" className="text-gray-700 hover:text-black">Posts</Link>
       <Link href="/dnd" className="text-gray-700 hover:text-black">dnd</Link>
