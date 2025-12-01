@@ -4,6 +4,17 @@
 - 정렬알고리즘 공부(ts에서)
 
 ---
+DnD-kit란
+React 전용 Drag & Drop 라이브러리.
+) 모듈 구조
+
+@dnd-kit/core → 기반 드래그 기능
+
+@dnd-kit/sortable → 정렬 기능(리스트 순서 바꾸기)
+
+@dnd-kit/utilities → 유틸
+
+
 ✅ 오프라인 dnd-kit 설치 3단계 요약
 1️⃣ 온라인 PC에서 .tgz 파일 3개 다운로드
 
