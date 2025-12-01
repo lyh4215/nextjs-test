@@ -3,6 +3,45 @@
 - main div는 grid로 그냥 block list정렬해서 사용
 - 정렬알고리즘 공부(ts에서)
 
+---
+✅ 오프라인 dnd-kit 설치 3단계 요약
+1️⃣ 온라인 PC에서 .tgz 파일 3개 다운로드
+
+브라우저에서 아래 주소 3개 다운로드:
+
+https://registry.npmjs.org/@dnd-kit/core/-/core-6.1.0.tgz
+https://registry.npmjs.org/@dnd-kit/sortable/-/sortable-8.0.0.tgz
+https://registry.npmjs.org/@dnd-kit/utilities/-/utilities-3.2.1.tgz
+
+
+(또는 최신 버전으로 동일한 구조의 URL 모두 가능)
+
+2️⃣ USB에 넣어서 오프라인 PC로 옮기기
+
+core-6.1.0.tgz
+sortable-8.0.0.tgz
+utilities-3.2.1.tgz
+
+이 3개를 Next.js 프로젝트 폴더에 복사한다.
+
+3️⃣ 오프라인 PC에서 npm install (로컬 파일 설치)
+
+프로젝트 루트에서:
+
+npm install ./core-6.1.0.tgz
+npm install ./sortable-8.0.0.tgz
+npm install ./utilities-3.2.1.tgz
+
+
+이러면
+
+node_modules 생성
+
+package-lock.json 갱신
+
+React와 완벽 호환
+
+완전 오프라인에서 정상 설치 완료.
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 

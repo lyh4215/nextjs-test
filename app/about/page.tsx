@@ -6,8 +6,8 @@ type BlockProps = {
   child? : number,
   isCol? : boolean,
 }
-const BlockWidth = 100;
-const BlockHeight = 50;
+const BlockWidth = 70;
+const BlockHeight = 40;
 const Block = ({id, child=1, isCol= true} : BlockProps) => {
   return <div
       className="border-3 flex items-center justify-center"
