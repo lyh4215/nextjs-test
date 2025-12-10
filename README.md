@@ -1,3 +1,10 @@
+- down.sql 만들기
+https://wiki.loliot.net/docs/lang/javascript/libraries/prisma/migrate
+
+==========
+
+
+
 - 3개의 Div로 나눔
 - 자신이 height, width가 몇인지 탐색을 통해 알게 해주는 함수 만들기
 - main div는 grid로 그냥 block list정렬해서 사용
