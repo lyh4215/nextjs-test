@@ -10,6 +10,29 @@ https://wiki.loliot.net/docs/lang/javascript/libraries/prisma/migrate
 - main div는 grid로 그냥 block list정렬해서 사용
 - 정렬알고리즘 공부(ts에서)
 
+
+---
+uvicorn
+https://pypi.org/project/uvicorn/#files
+
+uvicorn-0.38.0-py3-none-any.whl (68.1 kB 세부 사항 보기)
+---
+fastapi
+
+https://pypi.org/project/fastapi/#files
+
+fastapi-0.124.2-py3-none-any.whl (112.7 kB 세부 사항 보기)
+
+---
+waitress
+https://pypi.org/project/waitress/#files
+
+waitress-3.0.2-py3-none-any.whl (56.2 kB 세부 사항 보기)
+---
+nssm 2.24
+https://nssm.cc/download
+344KB
+
 ---
 DnD-kit란
 React 전용 Drag & Drop 라이브러리.
