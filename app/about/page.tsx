@@ -6,7 +6,7 @@ type BlockProps = {
   child? : number,
   isCol? : boolean,
 }
-const BlockWidth = 70;
+const BlockWidth = 60;
 const BlockHeight = 40;
 const Block = ({id, child=1, isCol= true} : BlockProps) => {
   return <div
