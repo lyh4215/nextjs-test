@@ -1,5 +1,6 @@
 // app/layout.tsx
 import { ZustandIpcProvider } from "@/providers/ZustandIpcProvider";
+import "./globals.css"
 
 export default function RootLayout({
   children,
