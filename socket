@@ -1,0 +1,113 @@
+mport asyncio
+import uuid
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+
+app = FastAPI()
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    await ws.accept()
+
+    try:
+        while True:
+            msg = await ws.receive_json()
+
+            if msg["type"] == "task.start":
+                task_id = str(uuid.uuid4())
+
+                await ws.send_json({
+                    "type": "task.started",
+                    "taskId": task_id,
+                    "payload": {}
+                })
+
+                asyncio.create_task(
+                    run_ai_task(ws, task_id, msg["payload"])
+                )
+
+    except WebSocketDisconnect:
+        print("client disconnected")
+
+
+async def run_ai_task(ws: WebSocket, task_id: str, payload: dict):
+    try:
+        await send_log(ws, task_id, "작업 시작", 0)
+
+        await asyncio.sleep(1)
+        await send_log(ws, task_id, "문서 분석 중...", 25)
+
+        await asyncio.sleep(1)
+        await send_log(ws, task_id, "AI 추론 중...", 60)
+
+        await asyncio.sleep(1)
+        await send_log(ws, task_id, "결과 정리 중...", 90)
+
+        await ws.send_json({
+            "type": "task.done",
+            "taskId": task_id,
+            "payload": {
+                "result": "완료된 결과"
+            }
+        })
+
+    except Exception as e:
+        await ws.send_json({
+            "type": "task.error",
+            "taskId": task_id,
+            "payload": {
+                "message": str(e)
+            }
+        })
+
+
+async def send_log(ws: WebSocket, task_id: str, message: str, progress: int):
+    await ws.send_json({
+        "type": "task.log",
+        "taskId": task_id,
+        "payload": {
+            "message": message,
+            "progress": progress
+        }
+    })
+Next.js 쪽 구조
+const ws = new WebSocket("ws://localhost:8000/ws");
+
+ws.onmessage = (event) => {
+  const msg = JSON.parse(event.data);
+
+  switch (msg.type) {
+    case "task.started":
+      console.log("started", msg.taskId);
+      break;
+
+    case "task.log":
+      appendLog(msg.taskId, msg.payload.message);
+      updateProgress(msg.taskId, msg.payload.progress);
+      break;
+
+    case "task.done":
+      setResult(msg.payload.result);
+      break;
+
+    case "task.error":
+      setError(msg.payload.message);
+      break;
+  }
+};
+
+작업 시작:
+
+ws.send(JSON.stringify({
+  type: "task.start",
+  payload: {
+    prompt: "분석할 내용"
+  }
+}));
+중요한 설계 포인트
+
+긴 AI 작업을 while True 안에서 직접 await하면 안 좋아.
+
+# 비추천
+if msg["type"] == "task.start":
+    result = await long_ai_task()
