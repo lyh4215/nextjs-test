@@ -1,0 +1,292 @@
+# main.py
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
+import threading
+import queue
+import uuid
+import time
+
+
+# =========================================================
+# 1. 실제 heavy job
+# =========================================================
+def heavy_job(job_id: str, n: int, stop_event: threading.Event, progress_queue: queue.Queue):
+    """
+    별도 thread에서 실행되는 작업.
+
+    여기서는 WebSocket을 직접 만지지 않는다.
+    progress_queue에 메시지만 넣는다.
+    """
+
+    total = 0
+    check_interval = 500_000
+
+    progress_queue.put({
+        "type": "log",
+        "job_id": job_id,
+        "message": "job started",
+    })
+
+    start_time = time.time()
+
+    for i in range(n):
+        # 예시용 CPU-bound 연산
+        total += (i * i) % 97
+
+        if i % check_interval == 0:
+            if stop_event.is_set():
+                progress_queue.put({
+                    "type": "stopped",
+                    "job_id": job_id,
+                    "stopped_at": i,
+                    "partial_result": total,
+                })
+
+                return {
+                    "status": "stopped",
+                    "stopped_at": i,
+                    "partial_result": total,
+                }
+
+            progress_queue.put({
+                "type": "progress",
+                "job_id": job_id,
+                "current": i,
+                "total": n,
+                "percent": round(i / n * 100, 2),
+            })
+
+    elapsed = time.time() - start_time
+
+    progress_queue.put({
+        "type": "log",
+        "job_id": job_id,
+        "message": "job finished",
+        "elapsed_sec": round(elapsed, 3),
+    })
+
+    return {
+        "status": "done",
+        "result": total,
+        "elapsed_sec": elapsed,
+    }
+
+
+# =========================================================
+# 2. FastAPI lifespan
+# =========================================================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.thread_pool = ThreadPoolExecutor(max_workers=1)
+
+    yield
+
+    app.state.thread_pool.shutdown(wait=False, cancel_futures=True)
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+# =========================================================
+# 3. 현재 실행 중인 job 상태
+# =========================================================
+job_lock = asyncio.Lock()
+
+current_job = {
+    "job_id": None,
+    "future": None,
+    "stop_event": None,
+    "progress_queue": None,
+}
+
+
+# =========================================================
+# 4. queue → WebSocket sender task
+# =========================================================
+async def pump_progress_to_websocket(
+    ws: WebSocket,
+    job_id: str,
+    future: asyncio.Future,
+    progress_queue: queue.Queue,
+):
+    """
+    FastAPI event loop에서 실행됨.
+    thread가 queue에 넣은 메시지를 읽어서 WebSocket으로 보낸다.
+    """
+
+    try:
+        while True:
+            # queue에 쌓인 메시지를 가능한 만큼 비움
+            while True:
+                try:
+                    message = progress_queue.get_nowait()
+                except queue.Empty:
+                    break
+
+                await ws.send_json(message)
+
+            # 작업이 끝났으면 종료
+            if future.done():
+                break
+
+            await asyncio.sleep(0.05)
+
+        # 작업 결과 전송
+        try:
+            result = await future
+
+            await ws.send_json({
+                "type": "finished",
+                "job_id": job_id,
+                "result": result,
+            })
+
+        except Exception as e:
+            await ws.send_json({
+                "type": "error",
+                "job_id": job_id,
+                "error": str(e),
+            })
+
+    finally:
+        async with job_lock:
+            if current_job["job_id"] == job_id:
+                current_job["job_id"] = None
+                current_job["future"] = None
+                current_job["stop_event"] = None
+                current_job["progress_queue"] = None
+
+
+# =========================================================
+# 5. WebSocket endpoint
+# =========================================================
+@app.websocket("/ws/job")
+async def job_websocket(ws: WebSocket):
+    await ws.accept()
+
+    await ws.send_json({
+        "type": "connected",
+        "message": "send start / stop / status",
+    })
+
+    try:
+        while True:
+            data = await ws.receive_json()
+            msg_type = data.get("type")
+
+            # -------------------------------------------------
+            # start
+            # -------------------------------------------------
+            if msg_type == "start":
+                n = int(data.get("n", 100_000_000))
+
+                async with job_lock:
+                    old_future = current_job["future"]
+
+                    if old_future is not None and not old_future.done():
+                        await ws.send_json({
+                            "type": "busy",
+                            "message": "another job is already running",
+                            "job_id": current_job["job_id"],
+                        })
+                        continue
+
+                    job_id = str(uuid.uuid4())
+                    stop_event = threading.Event()
+                    progress_queue = queue.Queue()
+
+                    loop = asyncio.get_running_loop()
+
+                    future = loop.run_in_executor(
+                        app.state.thread_pool,
+                        heavy_job,
+                        job_id,
+                        n,
+                        stop_event,
+                        progress_queue,
+                    )
+
+                    current_job["job_id"] = job_id
+                    current_job["future"] = future
+                    current_job["stop_event"] = stop_event
+                    current_job["progress_queue"] = progress_queue
+
+                    asyncio.create_task(
+                        pump_progress_to_websocket(
+                            ws=ws,
+                            job_id=job_id,
+                            future=future,
+                            progress_queue=progress_queue,
+                        )
+                    )
+
+                await ws.send_json({
+                    "type": "started",
+                    "job_id": job_id,
+                    "n": n,
+                })
+
+            # -------------------------------------------------
+            # stop
+            # -------------------------------------------------
+            elif msg_type == "stop":
+                async with job_lock:
+                    future = current_job["future"]
+                    stop_event = current_job["stop_event"]
+                    job_id = current_job["job_id"]
+
+                    if future is None or future.done():
+                        await ws.send_json({
+                            "type": "no_running_job",
+                            "message": "no job is currently running",
+                        })
+                        continue
+
+                    stop_event.set()
+
+                await ws.send_json({
+                    "type": "stopping",
+                    "job_id": job_id,
+                    "message": "stop signal sent",
+                })
+
+            # -------------------------------------------------
+            # status
+            # -------------------------------------------------
+            elif msg_type == "status":
+                async with job_lock:
+                    future = current_job["future"]
+
+                    if future is None:
+                        status = "idle"
+                    elif future.done():
+                        status = "finished"
+                    else:
+                        status = "running"
+
+                    await ws.send_json({
+                        "type": "status",
+                        "status": status,
+                        "job_id": current_job["job_id"],
+                    })
+
+            # -------------------------------------------------
+            # unknown message
+            # -------------------------------------------------
+            else:
+                await ws.send_json({
+                    "type": "error",
+                    "message": "unknown message type",
+                    "allowed": ["start", "stop", "status"],
+                })
+
+    except WebSocketDisconnect:
+        # 연결이 끊기면 작업도 멈추고 싶다면 stop_event를 set
+        async with job_lock:
+            stop_event = current_job["stop_event"]
+
+            if stop_event is not None:
+                stop_event.set()
