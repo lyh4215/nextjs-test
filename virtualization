@@ -1,0 +1,224 @@
+이건 전형적으로 virtualization + store subscription 최소화 + 하이라이트 계산 지연/캐싱으로 풀어야 해요. 핵심은 “전체 messages를 렌더링하지 말고, visible row만 Card로 만들기”와 “선택 단어 변경 때 전체 Card가 다시 계산하지 않게 하기”예요.
+
+17s 동안 생각함
+
+응. 할 수 있어. 네 상황은 정확히 list virtualization으로 풀어야 해.
+
+핵심은 이거야.
+
+전체 message 10,000개가 있어도
+실제로 DOM에 렌더링되는 Card는 화면 근처 20~50개 정도만 있게 만들기
+
+그러면 단어 선택 후 하이라이트 계산도 현재 렌더링된 Card에서만 실행돼.
+
+React에서 이 용도면 나는 @tanstack/react-virtual을 추천해. TanStack Virtual은 큰 리스트에서 실제 보이는 범위만 계산하고 렌더링하는 headless virtualization 라이브러리이고, 공식 문서도 visible range를 계산해 실제 보이는 item만 렌더링한다고 설명해.
+
+설치:
+
+npm install @tanstack/react-virtual
+
+대략 구조는 이렇게 가면 돼.
+
+Zustand store
+
+중요한 점은 하이라이트 결과를 store에 저장하지 않는 것이야.
+store에는 원본 메시지와 선택 단어만 두고, 하이라이트 계산은 visible Card 안에서만 한다.
+
+import { create } from "zustand";
+
+type Message = {
+  id: string;
+  text: string;
+};
+
+type MessageStore = {
+  messageIds: string[];
+  messagesById: Record<string, Message>;
+  selectedWord: string | null;
+  setSelectedWord: (word: string | null) => void;
+};
+
+export const useMessageStore = create<MessageStore>((set) => ({
+  messageIds: [],
+  messagesById: {},
+  selectedWord: null,
+  setSelectedWord: (word) => set({ selectedWord: word }),
+}));
+Virtualized message list
+"use client";
+
+import { useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useMessageStore } from "./messageStore";
+import { MessageCard } from "./MessageCard";
+
+export function MessageList() {
+  const parentRef = useRef<HTMLDivElement | null>(null);
+
+  const messageIds = useMessageStore((state) => state.messageIds);
+
+  const rowVirtualizer = useVirtualizer({
+    count: messageIds.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 120,
+    overscan: 8,
+  });
+
+  return (
+    <div
+      ref={parentRef}
+      style={{
+        height: "700px",
+        overflow: "auto",
+        border: "1px solid #ddd",
+      }}
+    >
+      <div
+        style={{
+          height: `${rowVirtualizer.getTotalSize()}px`,
+          position: "relative",
+        }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const messageId = messageIds[virtualRow.index];
+
+          return (
+            <div
+              key={messageId}
+              ref={rowVirtualizer.measureElement}
+              data-index={virtualRow.index}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <MessageCard id={messageId} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+여기서 중요한 부분은 이거야.
+
+rowVirtualizer.getVirtualItems().map(...)
+
+messageIds.map(...)을 하는 게 아니라, virtualizer가 지금 화면 근처라고 판단한 item만 map하는 거야. 그래서 메시지가 10,000개여도 실제 <MessageCard />는 화면 근처 것만 만들어짐.
+
+메시지 높이가 서로 다르면 measureElement를 붙이는 게 좋아. TanStack Virtual의 Virtualizer API는 각 item의 실제 크기 또는 추정 크기를 반환하는 estimateSize를 쓰고, 동적 측정이 필요하면 virtualItem.measureElement/measureElement 방식으로 실제 높이를 측정할 수 있게 되어 있어.
+
+MessageCard
+"use client";
+
+import React, { useMemo } from "react";
+import { useMessageStore } from "./messageStore";
+
+type Props = {
+  id: string;
+};
+
+export const MessageCard = React.memo(function MessageCard({ id }: Props) {
+  const message = useMessageStore((state) => state.messagesById[id]);
+  const selectedWord = useMessageStore((state) => state.selectedWord);
+  const setSelectedWord = useMessageStore((state) => state.setSelectedWord);
+
+  const highlighted = useMemo(() => {
+    return highlightText(message.text, selectedWord);
+  }, [message.text, selectedWord]);
+
+  function handleMouseUp() {
+    const selection = window.getSelection()?.toString().trim();
+
+    if (selection) {
+      setSelectedWord(selection);
+    }
+  }
+
+  return (
+    <article
+      onMouseUp={handleMouseUp}
+      style={{
+        padding: 16,
+        marginBottom: 12,
+        borderRadius: 12,
+        background: "white",
+        border: "1px solid #ddd",
+        lineHeight: 1.6,
+      }}
+    >
+      {highlighted}
+    </article>
+  );
+});
+
+function highlightText(text: string, selectedWord: string | null) {
+  if (!selectedWord) {
+    return text;
+  }
+
+  const parts = text.split(selectedWord);
+
+  if (parts.length === 1) {
+    return text;
+  }
+
+  return parts.flatMap((part, index) => {
+    if (index === parts.length - 1) {
+      return [part];
+    }
+
+    return [
+      part,
+      <mark key={index} style={{ background: "yellow" }}>
+        {selectedWord}
+      </mark>,
+    ];
+  });
+}
+
+이렇게 하면 selectedWord가 바뀔 때 현재 mount된 MessageCard만 다시 렌더링되고 하이라이트 계산을 해. 화면 밖 메시지들은 아예 컴포넌트가 없으니까 계산에 참여하지 않아.
+
+주의할 점
+
+지금 네 코드가 이런 식이면 성능이 안 좋아질 수 있어.
+
+messages.map((message) => (
+  <MessageCard key={message.id} message={message} selectedWord={selectedWord} />
+));
+
+이러면 message가 10,000개면 10,000개 전부 렌더링 후보가 되고, selectedWord가 바뀔 때 10,000개가 하이라이트 계산할 수 있어.
+
+또 Zustand에서 이런 식으로 전체 state를 구독하면 안 좋아.
+
+const store = useMessageStore();
+
+이러면 store의 어느 값이 바뀌어도 해당 컴포넌트가 다시 렌더링될 수 있어. Zustand 공식 문서도 computed selector를 쓸 때는 필요한 state만 selector로 구독하고, shallow equal이 필요한 경우 useShallow를 사용해 불필요한 rerender를 줄이라고 설명해.
+
+좋은 방식은:
+
+const messageIds = useMessageStore((state) => state.messageIds);
+const selectedWord = useMessageStore((state) => state.selectedWord);
+
+처럼 필요한 조각만 구독하는 거야.
+
+결론
+
+네 경우 추천 구조는 이거야.
+
+Zustand
+= message 원본 데이터, selectedWord만 저장
+
+MessageList
+= TanStack Virtual로 visible item만 렌더링
+
+MessageCard
+= 자기 id에 해당하는 message만 구독
+= selectedWord가 있을 때만 useMemo로 하이라이트 계산
+
+하이라이트 결과
+= store에 저장하지 말고 Card 내부에서 계산
