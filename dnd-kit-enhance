@@ -1,0 +1,119 @@
+응, 가능해. 세로 리스트에서 아이템 높이가 서로 다른 정도라면 dnd-kit으로 꽤 안정적으로 만들 수 있어.
+
+핵심 조합은 이거야:
+
+import {
+  DndContext,
+  closestCenter,
+  MeasuringStrategy,
+} from '@dnd-kit/core';
+
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+
+import {
+  restrictToVerticalAxis,
+} from '@dnd-kit/modifiers';
+
+const measuringConfig = {
+  droppable: {
+    strategy: MeasuringStrategy.Always,
+  },
+};
+
+<DndContext
+  collisionDetection={closestCenter}
+  modifiers={[restrictToVerticalAxis]}
+  measuring={measuringConfig}
+  onDragEnd={handleDragEnd}
+>
+  <SortableContext
+    items={items.map((item) => item.id)}
+    strategy={verticalListSortingStrategy}
+  >
+    {items.map((item) => (
+      <SortableItem key={item.id} id={item.id} />
+    ))}
+  </SortableContext>
+</DndContext>
+
+여기서 중요한 건 3개야.
+
+첫째, 세로 리스트면 verticalListSortingStrategy를 써야 해. dnd-kit 문서에서도 이 전략은 vertical list에 최적화된 strategy라고 설명해. 기본 rectSortingStrategy보다 세로 리스트에서는 이쪽이 더 자연스러워.
+
+둘째, 아이템 높이가 달라서 drag 중 위치 계산이 이상하면 MeasuringStrategy.Always를 써보는 게 좋아. dnd-kit 쪽 이슈 답변에서도 droppable 측정 전략을 Always로 바꾸면 드래그 전/중/후에 요소들을 다시 측정하도록 할 수 있다고 설명돼.
+
+셋째, 리스트가 스크롤되거나 화면보다 길면 DragOverlay를 쓰는 게 안정적이야. 공식 sortable 문서도 대부분의 sortable list, 특히 스크롤되거나 viewport보다 긴 리스트에서는 DragOverlay 사용을 권장해.
+
+예를 들면:
+
+<DndContext
+  collisionDetection={closestCenter}
+  modifiers={[restrictToVerticalAxis]}
+  measuring={measuringConfig}
+  onDragStart={({ active }) => setActiveId(active.id)}
+  onDragEnd={handleDragEnd}
+  onDragCancel={() => setActiveId(null)}
+>
+  <SortableContext
+    items={items.map((item) => item.id)}
+    strategy={verticalListSortingStrategy}
+  >
+    {items.map((item) => (
+      <SortableItem key={item.id} id={item.id} />
+    ))}
+  </SortableContext>
+
+  <DragOverlay modifiers={[restrictToVerticalAxis]}>
+    {activeId ? <ItemView item={items.find((x) => x.id === activeId)} /> : null}
+  </DragOverlay>
+</DndContext>
+
+그리고 SortableItem 쪽에서는 보통 이렇게 작성해:
+
+import {useSortable} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
+
+function SortableItem({id, children}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({id});
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
+    </div>
+  );
+}
+
+다만 주의할 점이 있어. 일반 세로 리스트에서 높이만 다른 건 괜찮은 편인데, Pinterest처럼 아이템의 가로/세로 크기가 제각각인 masonry/grid 레이아웃이면 dnd-kit 기본 sorting strategy만으로는 불안정할 수 있어. dnd-kit GitHub 이슈에서도 예측 불가능한 layout을 처리하는 built-in sorting strategy는 제한적이라 custom strategy가 필요할 수 있다는 얘기가 나와.
+
+그래서 네 상황이:
+
+세로 리스트 + 카드 높이만 다름
+
+이면 추천 조합은:
+
+collisionDetection={closestCenter}
+strategy={verticalListSortingStrategy}
+modifiers={[restrictToVerticalAxis]}
+measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+
+반대로:
+
+grid / masonry / 카드 폭과 높이가 다 다름
+
+이면 기본 sortable로는 흔들릴 수 있고, 그때는 custom sorting strategy나 layout을 단순화하는 쪽이 더 안정적이야.
