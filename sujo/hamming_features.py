@@ -84,7 +84,7 @@ def hamming_distribution(ciphertext: str, block_size: int):
     return counts / total_pairs
 
 
-def extract_features(ciphertext: str):
+def extract_hamming_features(ciphertext):(ciphertext: str):
     """
     최종 18-dimensional feature vector 생성.
 
@@ -114,7 +114,7 @@ def extract_features(ciphertext: str):
     )
 
 
-def get_feature_names():
+def get_hamming_feature_names():
     """
     Random Forest feature importance 확인용 이름
     """
