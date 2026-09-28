@@ -13,11 +13,10 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 
-from hamming_features import (
+from feature_extractor import (
     extract_features,
     get_feature_names,
 )
-
 
 # =========================================================
 # 설정
@@ -180,7 +179,9 @@ def main():
 
     X, y = make_features(df)
 
-    feature_names = get_feature_names()
+    feature_names = (
+        get_feature_names()
+    )
 
     print()
     print(
