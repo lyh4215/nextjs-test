@@ -12,34 +12,38 @@ from cramer_positional_features import (
     get_cramer_feature_names,
 )
 
+from positional_coupling_features import (
+    extract_coupling_features,
+    get_coupling_feature_names,
+)
+
 
 def extract_features(
     ciphertext: str
 ):
-    """
-    최종 feature vector.
 
-    Hamming:
-        18 features
-
-    Cramer's V:
-        20 features
-
-    Total:
-        38 features
-    """
-
-    hamming = extract_hamming_features(
-        ciphertext
+    hamming = (
+        extract_hamming_features(
+            ciphertext
+        )
     )
 
-    cramer = extract_cramer_features(
-        ciphertext
+    cramer = (
+        extract_cramer_features(
+            ciphertext
+        )
+    )
+
+    coupling = (
+        extract_coupling_features(
+            ciphertext
+        )
     )
 
     return np.concatenate([
         hamming,
-        cramer
+        cramer,
+        coupling,
     ])
 
 
@@ -49,6 +53,8 @@ def get_feature_names():
         get_hamming_feature_names()
         +
         get_cramer_feature_names()
+        +
+        get_coupling_feature_names()
     )
 
 
@@ -66,7 +72,7 @@ if __name__ == "__main__":
     names = get_feature_names()
 
     print(
-        "Total feature count:",
+        "Feature count:",
         len(features)
     )
 
@@ -76,6 +82,6 @@ if __name__ == "__main__":
     ):
 
         print(
-            f"{name:22s}: "
+            f"{name:28s}: "
             f"{value:.6f}"
         )
