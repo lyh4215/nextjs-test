@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="암호 해독 로고">
+<defs>
+<linearGradient id="noteLine1" x1="26.0" y1="46.6" x2="74.0" y2="33.4" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#9DC8FE"/><stop offset="1" stop-color="#89B8FC"/></linearGradient>
+<linearGradient id="noteLine2" x1="26.5" y1="62.6" x2="74.5" y2="49.4" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#91BEFC"/><stop offset="1" stop-color="#7CACFA"/></linearGradient>
+<linearGradient id="noteLine3" x1="27.0" y1="78.6" x2="75.0" y2="65.4" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#80B2FA"/><stop offset="1" stop-color="#6CA0F8"/></linearGradient>
+<linearGradient id="noteLine4" x1="27.5" y1="94.6" x2="75.5" y2="81.4" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#70A5F8"/><stop offset="1" stop-color="#5F95F6"/></linearGradient>
+</defs>
+<path d="M10 35 Q10 26 19 23 L77 7 Q89 4 90 17 L90 93 Q90 102 82 105 L24 122 Q13 125 12 112Z" fill="#DCEBFF"/>
+<g fill="none" stroke-width="6.6" stroke-linecap="round">
+<path d="M26.0 46.6 L74.0 33.4" stroke="url(#noteLine1)"/>
+<path d="M26.5 62.6 L74.5 49.4" stroke="url(#noteLine2)"/>
+<path d="M27.0 78.6 L75.0 65.4" stroke="url(#noteLine3)"/>
+<path d="M27.5 94.6 L75.5 81.4" stroke="url(#noteLine4)"/>
+</g>
+<path d="M43 54 Q43 45 52 42 L107 27 Q118 24 119 36 L119 101 Q119 110 110 113 L57 125 Q46 128 44 116Z" fill="#435BF5"/>
+<g fill="none" stroke="#FFFFFF" stroke-width="4.3" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(65 82) skewY(-15.4)"><path d="M0 -6.5 V6.5 M-5.6 -3.3 L5.6 3.3 M-5.6 3.3 L5.6 -3.3"/></g>
+<g transform="translate(84 76.8) skewY(-15.4)"><path d="M0 -6.5 V6.5 M-5.6 -3.3 L5.6 3.3 M-5.6 3.3 L5.6 -3.3"/></g>
+<g transform="translate(103 71.6) skewY(-15.4)"><path d="M0 -6.5 V6.5 M-5.6 -3.3 L5.6 3.3 M-5.6 3.3 L5.6 -3.3"/></g>
+</g>
+</svg>
