@@ -1,0 +1,24 @@
+/* CSS module: animation runs once on mount */
+.logo .back { opacity: 0; animation: backAppear 1.65s cubic-bezier(.22,1,.36,1) forwards; }
+.logo .noteLine { stroke-dasharray: 55; stroke-dashoffset: 55; opacity: 0; animation: drawLine .50s ease-out forwards; }
+.logo .noteLine1 { animation-delay: .26s; }
+.logo .noteLine2 { animation-delay: .32s; }
+.logo .noteLine3 { animation-delay: .38s; }
+.logo .noteLine4 { animation-delay: .44s; }
+.logo .front { opacity: 0; animation: frontAppear 1.05s cubic-bezier(.16,1,.3,1) .62s forwards; }
+.logo .star { opacity: 0; animation: symbolAppear .20s ease-out forwards; }
+.logo .star1 { animation-delay: 1.10s; }
+.logo .star2 { animation-delay: 1.22s; }
+.logo .star3 { animation-delay: 1.34s; }
+@keyframes backAppear { 0% {opacity:0;transform:translate(-10px,7px)} 37%,100% {opacity:1;transform:translate(0,0)} }
+@keyframes drawLine { from {opacity:0;stroke-dashoffset:55} 10%{opacity:1} to {opacity:1;stroke-dashoffset:0} }
+@keyframes frontAppear {0%{opacity:0;transform:translate(18px,-8px)} 45%,100%{opacity:1;transform:translate(0,0)} }
+@keyframes symbolAppear {from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce) {
+  .logo .back, .logo .front, .logo .noteLine, .logo .star {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    stroke-dashoffset: 0;
+  }
+}
